@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import BackgroundCircles from "@/components/BackgroundCircles";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <BackgroundCircles />
         {children}
         <Toaster richColors position="top-center" />
         <Suspense fallback={null}>
