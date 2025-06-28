@@ -3,6 +3,15 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Peer, DataConnection } from 'peerjs';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 interface PlayGameProps {
   gameId: string;
@@ -32,6 +41,9 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   const [bestLocalScore, setBestLocalScore] = useState(0);
   const [bestRemoteScore, setBestRemoteScore] = useState(0);
   const [scoreAnimation, setScoreAnimation] = useState<{ key: number, score: number, side: 'local' | 'remote' } | null>(null);
+
+  // 계산된 진행률 (게임 타이머)
+  const progressPercent = gameState === 'playing' ? (gameTimer / 30) * 100 : 0;
 
   // Game flow effect
   useEffect(() => {
@@ -351,98 +363,151 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   const invitationLink = myId ? `${window.location.origin}/play/${myId}` : '';
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-10 bg-gray-100 relative">
-       <Link href="/" className="absolute top-4 left-4 sm:top-8 sm:left-8 px-4 py-2 font-bold text-white bg-gray-500 rounded hover:bg-gray-700">
-        ← 뒤로 가기
-      </Link>
-      <h1 className="text-3xl font-bold mb-4 text-center">2인용 원 그리기 대결</h1>
-      <div className="mb-4 text-center h-24">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-10 bg-gradient-to-br from-background via-background/80 to-muted relative">
+      <Button asChild className="absolute top-4 left-4 sm:top-8 sm:left-8">
+        <Link href="/">← 뒤로 가기</Link>
+      </Button>
+      <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 text-center">
+        2인용 원 그리기 대결
+      </h1>
+      <div className="mb-6 text-center min-h-[120px] flex flex-col justify-center items-center">
         {gameState === 'waiting' && myId && !isConnected && (
-          <div className="p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
-            <p className="mb-2">다른 사람을 초대하려면 아래 링크를 공유하세요:</p>
-            <input
-              type="text"
-              value={invitationLink}
-              readOnly
-              className="w-full p-2 text-center bg-white border rounded"
-            />
-          </div>
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>상대방 초대하기</CardTitle>
+              <CardDescription>
+                다른 사람을 초대하려면 아래 링크를 공유하세요.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Input value={invitationLink} readOnly />
+            </CardContent>
+          </Card>
         )}
         {isConnected && gameState === 'countdown' && (
-          <p className="text-blue-600 font-bold text-5xl animate-ping">
+          <p className="text-primary font-extrabold text-7xl lg:text-8xl animate-countdown drop-shadow-lg">
             {countdown}
           </p>
         )}
         {gameState === 'playing' && (
-          <p className="text-red-600 font-bold text-4xl">
-            남은 시간: {gameTimer}초
-          </p>
+          <>
+            <p className="text-destructive font-extrabold text-5xl mb-2">
+              남은 시간: {gameTimer}초
+            </p>
+            <div className="w-full max-w-3xl mb-4">
+              <div className="progress-container">
+                <div
+                  className="progress-bar"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+          </>
         )}
         {gameState === 'finished' && winner && (
-           <div className="text-center">
-            <p className="text-4xl font-bold text-purple-700">게임 종료!</p>
-            {winner === 'local' && <p className="text-2xl text-green-600">당신이 이겼습니다! 🏆</p>}
-            {winner === 'remote' && <p className="text-2xl text-red-600">상대방이 이겼습니다.</p>}
-            {winner === 'tie' && <p className="text-2xl text-blue-600">무승부입니다!</p>}
+          <div className="text-center">
+            <p className="text-4xl font-bold text-primary">게임 종료!</p>
+            {winner === 'local' && (
+              <p className="text-2xl mt-2 text-green-600">
+                당신이 이겼습니다! 🏆
+              </p>
+            )}
+            {winner === 'remote' && (
+              <p className="text-2xl mt-2 text-red-600">
+                상대방이 이겼습니다.
+              </p>
+            )}
+            {winner === 'tie' && (
+              <p className="text-2xl mt-2 text-blue-600">무승부입니다!</p>
+            )}
           </div>
         )}
 
         {gameState === 'waiting' && !isConnected && showDisconnectedMessage && (
-          <p className="text-red-500 font-bold mt-4">
+          <p className="text-destructive font-bold mt-4">
             🔌 연결이 끊어졌습니다.
           </p>
         )}
-         {gameState === 'waiting' && !isConnected && !showDisconnectedMessage && (
-          <p className="text-orange-500 font-bold mt-4">
-            ⏳ 상대방을 기다리는 중...
-          </p>
-        )}
+        {gameState === 'waiting' &&
+          !isConnected &&
+          !showDisconnectedMessage &&
+          !myId && (
+            <p className="text-muted-foreground font-bold mt-4">
+              🔗 Peer ID를 생성하는 중...
+            </p>
+          )}
+        {gameState === 'waiting' &&
+          !isConnected &&
+          !showDisconnectedMessage &&
+          myId && (
+            <p className="text-muted-foreground font-bold mt-4">
+              ⏳ 상대방을 기다리는 중...
+            </p>
+          )}
       </div>
-      <div className="flex flex-col md:flex-row gap-8 w-full max-w-4xl">
-        <div className="flex flex-col items-center relative w-full">
-          <div className="text-center h-16">
-            <h2 className="text-xl mb-1">나</h2>
-            <p className="text-lg">총점: {Math.round(localScore)}</p>
-            <p className="text-sm text-gray-600">최고 점수: {Math.round(bestLocalScore)}</p>
-          </div>
-           {scoreAnimation?.side === 'local' && (
-            <div key={scoreAnimation.key} className="absolute top-0 text-2xl font-bold text-green-500 animate-score-up z-10">
-              +{Math.round(scoreAnimation.score)}
+      <div className="grid md:grid-cols-2 gap-8 w-full max-w-5xl">
+        <Card className="w-full shadow-lg border border-primary/20">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-primary">나</CardTitle>
+            <CardDescription>
+              총점: {Math.round(localScore)} | 최고 점수:{' '}
+              {Math.round(bestLocalScore)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="relative p-4">
+            {scoreAnimation?.side === 'local' && (
+              <div
+                key={scoreAnimation.key}
+                className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl font-bold text-green-500 animate-score-up z-10"
+              >
+                +{Math.round(scoreAnimation.score)}
+              </div>
+            )}
+            <div className="w-full aspect-square max-w-[400px] mx-auto">
+              <canvas
+                ref={localCanvasRef}
+                width="400"
+                height="400"
+                className={`border border-border rounded-lg bg-card ${
+                  gameState === 'playing'
+                    ? 'cursor-crosshair'
+                    : 'cursor-not-allowed'
+                } w-full h-full`}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              />
             </div>
-          )}
-          <div className="w-full aspect-square max-w-[400px]">
-            <canvas
-              ref={localCanvasRef}
-              width="400"
-              height="400"
-              className={`border border-gray-400 rounded-lg bg-white ${gameState === 'playing' ? 'cursor-crosshair' : 'cursor-not-allowed'} w-full h-full`}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-            />
-          </div>
-        </div>
-        <div className="flex flex-col items-center relative w-full">
-          <div className="text-center h-16">
-            <h2 className="text-xl mb-1">상대방</h2>
-            <p className="text-lg">총점: {Math.round(remoteScore)}</p>
-            <p className="text-sm text-gray-600">최고 점수: {Math.round(bestRemoteScore)}</p>
-          </div>
-          {scoreAnimation?.side === 'remote' && (
-            <div key={scoreAnimation.key} className="absolute top-0 text-2xl font-bold text-purple-500 animate-score-up z-10">
-              +{Math.round(scoreAnimation.score)}
+          </CardContent>
+        </Card>
+        <Card className="w-full shadow-lg border border-purple-400/20">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-purple-600">상대방</CardTitle>
+            <CardDescription>
+              총점: {Math.round(remoteScore)} | 최고 점수:{' '}
+              {Math.round(bestRemoteScore)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="relative p-4">
+            {scoreAnimation?.side === 'remote' && (
+              <div
+                key={scoreAnimation.key}
+                className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl font-bold text-purple-500 animate-score-up z-10"
+              >
+                +{Math.round(scoreAnimation.score)}
+              </div>
+            )}
+            <div className="w-full aspect-square max-w-[400px] mx-auto">
+              <canvas
+                ref={remoteCanvasRef}
+                width="400"
+                height="400"
+                className="border border-border rounded-lg bg-card w-full h-full"
+              />
             </div>
-          )}
-           <div className="w-full aspect-square max-w-[400px]">
-            <canvas
-              ref={remoteCanvasRef}
-              width="400"
-              height="400"
-              className="border border-gray-400 rounded-lg bg-white w-full h-full"
-            />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </main>
   );
