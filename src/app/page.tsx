@@ -3,30 +3,20 @@
 import CircleDrawer from '@/components/CircleDrawer';
 import RankingBoard from '@/components/RankingBoard';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import type { Peer } from 'peerjs';
 
 export default function Home() {
   const router = useRouter();
-  const [peer, setPeer] = useState<Peer | null>(null);
-  
-  useEffect(() => {
-    import('peerjs').then(({ default: Peer }) => {
-      const newPeer = new Peer();
-      setPeer(newPeer);
+
+  const startMultiplayerGame = async () => {
+    const { default: Peer } = await import('peerjs');
+    const peer = new Peer();
+    peer.on('open', (id) => {
+      router.push(`/play/${id}`);
     });
-
-    return () => {
-      peer?.destroy();
-    }
-  }, []);
-
-  const startMultiplayerGame = () => {
-    if(peer) {
-        router.push(`/play/${peer.id}`);
-    } else {
-        alert('연결 서비스를 초기화하는 중입니다. 잠시 후 다시 시도해주세요.');
-    }
+    peer.on('error', (err) => {
+        alert('연결 서비스를 초기화하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        console.error(err);
+    })
   };
 
   return (
