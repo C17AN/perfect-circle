@@ -28,7 +28,7 @@ export default function Home() {
         <div className="flex flex-col gap-4 w-full md:w-1/3">
           <button
             onClick={startMultiplayerGame}
-            className="w-full px-4 py-3 font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-800 transition-colors"
+            className="w-full px-4 py-3 font-bold text-white bg-primary rounded-lg hover:bg-primary/80 transition-colors"
           >
             2인용 게임 시작하기
           </button>

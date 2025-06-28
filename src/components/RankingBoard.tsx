@@ -23,7 +23,7 @@ const RankingBoard = () => {
 
   return (
     <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md w-full">
-      <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-center text-purple-700">명예의 전당 🏆</h2>
+      <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-center text-primary">명예의 전당 🏆</h2>
       {error && <div className="text-red-500">랭킹을 불러오는 데 실패했습니다.</div>}
       {!rankings && <div className="text-gray-500 text-center">랭킹을 불러오는 중...</div>}
       {rankings && rankings.length === 0 && <div className="text-gray-500 text-center">아직 랭킹이 없습니다.</div>}
@@ -42,7 +42,7 @@ const RankingBoard = () => {
                 </p>
               </div>
             </div>
-            <span className="text-lg sm:text-xl font-bold text-blue-600">{rank.score.toFixed(2)}점</span>
+            <span className="text-lg sm:text-xl font-bold text-primary">{rank.score.toFixed(2)}점</span>
           </li>
         ))}
       </ul>

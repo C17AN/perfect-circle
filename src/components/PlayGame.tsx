@@ -418,7 +418,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
               </p>
             )}
             {winner === 'tie' && (
-              <p className="text-2xl mt-2 text-blue-600">무승부입니다!</p>
+              <p className="text-2xl mt-2 text-primary">무승부입니다!</p>
             )}
           </div>
         )}
@@ -481,9 +481,9 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
             </div>
           </CardContent>
         </Card>
-        <Card className="w-full shadow-lg border border-purple-400/20">
+        <Card className="w-full shadow-lg border border-primary/20">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-purple-600">상대방</CardTitle>
+            <CardTitle className="text-primary">상대방</CardTitle>
             <CardDescription>
               총점: {Math.round(remoteScore)} | 최고 점수:{' '}
               {Math.round(bestRemoteScore)}
@@ -493,7 +493,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
             {scoreAnimation?.side === 'remote' && (
               <div
                 key={scoreAnimation.key}
-                className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl font-bold text-purple-500 animate-score-up z-10"
+                className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl font-bold text-primary animate-score-up z-10"
               >
                 +{Math.round(scoreAnimation.score)}
               </div>

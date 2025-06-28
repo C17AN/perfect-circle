@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useSWRConfig } from 'swr';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const CircleDrawer = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -14,6 +16,7 @@ const CircleDrawer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedToday, setSubmittedToday] = useState(false);
   const [showRankForm, setShowRankForm] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
   const { mutate } = useSWRConfig();
 
   useEffect(() => {
@@ -38,8 +41,28 @@ const CircleDrawer = () => {
     if (!canvas) return;
     const context = canvas.getContext('2d');
     if (!context) return;
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    const width = canvas.width;
+    const height = canvas.height;
+    context.clearRect(0, 0, width, height);
 
+    // Draw grid if enabled
+    if (showGrid) {
+      const gridSize = 25;
+      context.beginPath();
+      context.strokeStyle = '#e5e7eb';
+      context.lineWidth = 1;
+      for (let x = gridSize; x < width; x += gridSize) {
+        context.moveTo(x, 0);
+        context.lineTo(x, height);
+      }
+      for (let y = gridSize; y < height; y += gridSize) {
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+      }
+      context.stroke();
+    }
+
+    // Draw user strokes
     context.beginPath();
     context.strokeStyle = 'black';
     context.lineWidth = 2;
@@ -51,7 +74,7 @@ const CircleDrawer = () => {
       }
     }
     context.stroke();
-  }, [points]);
+  }, [points, showGrid]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setIsDrawing(true);
@@ -159,7 +182,20 @@ const CircleDrawer = () => {
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 p-6 bg-white border border-gray-200 rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold text-center">가장 완벽한 원을 그려보세요!</h1>
+      {/* 제목 + 격자 토글 */}
+      <div className="relative w-full flex items-center justify-center">
+        <h1 className="text-2xl font-bold text-center">가장 완벽한 원을 그려보세요!</h1>
+        <div className="absolute right-0">
+          <Label htmlFor="grid-toggle" className="flex items-center gap-2 cursor-pointer">
+            <Switch
+              id="grid-toggle"
+              checked={showGrid}
+              onCheckedChange={setShowGrid}
+            />
+            격자 표시
+          </Label>
+        </div>
+      </div>
       <div className="w-full max-w-[500px] aspect-square">
         <canvas
           ref={canvasRef}
@@ -180,14 +216,14 @@ const CircleDrawer = () => {
             setShowRankForm(false);
             setMessage('');
           }}
-          className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
+          className="px-4 py-2 font-bold text-white bg-primary rounded hover:bg-primary/80"
         >
           다시 그리기
         </button>
         {score !== null && !submittedToday && !showRankForm && (
           <button
             onClick={() => setShowRankForm(true)}
-            className="px-4 py-2 font-bold text-white bg-green-500 rounded hover:bg-green-700"
+            className="px-4 py-2 font-bold text-white bg-primary rounded hover:bg-primary/80"
           >
             랭킹 등록하기
           </button>
@@ -196,8 +232,8 @@ const CircleDrawer = () => {
 
       <div className="flex flex-col items-center justify-center h-28 w-full">
         {score !== null && !showRankForm && (
-          <div className="p-4 text-xl font-bold bg-gray-100 rounded-lg animate-pulse">
-            당신의 점수: <span className="text-blue-600">{score}</span> 점!
+          <div className="p-4 text-xl font-bold bg-gray-100 rounded-lg animate-score-pop">
+            당신의 점수: <span className="text-primary">{score}</span> 점!
           </div>
         )}
         {showRankForm && (
@@ -213,14 +249,14 @@ const CircleDrawer = () => {
             <button
               onClick={handleRegisterRank}
               disabled={isSubmitting}
-              className="px-4 py-2 font-bold text-white bg-green-500 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+              className="px-4 py-2 font-bold text-white bg-primary rounded-lg hover:bg-primary/80 disabled:bg-gray-400"
             >
               {isSubmitting ? '등록 중...' : '등록 완료'}
             </button>
           </div>
         )}
         {submittedToday && score !== null && (
-          <p className="text-green-600 mt-4 text-center">
+          <p className="text-primary mt-4 text-center">
             오늘은 이미 랭킹을 등록했습니다. 내일 다시 도전해주세요!
           </p>
         )}
