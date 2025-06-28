@@ -400,7 +400,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
       await navigator.clipboard.writeText(invitationLink);
       setCopied(true);
       toast.success("복사되었습니다!");
-      setTimeout(() => setCopied(false), 1500);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Clipboard copy failed:", err);
       toast.error("복사에 실패했습니다");
@@ -408,7 +408,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-10 bg-gradient-to-br from-background via-background/80 to-muted relative overflow-hidden">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-background via-background/80 to-muted relative overflow-hidden">
       {/* Decorative blurred shapes */}
       <motion.div
         className="pointer-events-none absolute -z-10 w-[500px] h-[500px] bg-primary/20 rounded-full blur-3xl"
@@ -424,13 +424,13 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
         transition={{ duration: 25, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
         style={{ bottom: 0, left: "50%" }}
       />
-      <Button asChild className="absolute top-4 left-4 sm:top-8 sm:left-8">
+      <Button asChild className="mb-12 mr-auto">
         <Link href="/">← 뒤로 가기</Link>
       </Button>
       <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 text-center">
         2인용 원 그리기 대결
       </h1>
-      <div className="mb-6 text-center min-h-[120px] flex flex-col justify-center items-center">
+      <div className="mb-6 w-full mx-auto text-center min-h-[120px] flex flex-col justify-center items-center">
         {gameState === "waiting" && myId && !isConnected && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -438,7 +438,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
             transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] }}
             className="w-full max-w-md"
           >
-            <Card>
+            <Card className="w-full shadow-sm border border-primary/20">
               <CardHeader>
                 <CardTitle>상대방 초대하기</CardTitle>
                 <CardDescription>다른 사람을 초대하려면 아래 링크를 공유하세요.</CardDescription>
@@ -446,7 +446,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
               <CardContent>
                 <div className="flex gap-2 items-center">
                   <Input value={invitationLink} readOnly className="flex-1" />
-                  <Button type="button" onClick={handleCopy}>
+                  <Button type="button" onClick={handleCopy} disabled={copied}>
                     {copied ? "복사됨!" : "복사"}
                   </Button>
                 </div>
@@ -472,7 +472,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
           <AnimatePresence mode="wait">
             <motion.p
               key={countdown}
-              className="text-primary font-extrabold text-7xl lg:text-8xl drop-shadow-lg"
+              className="text-primary font-extrabold text-7xl lg:text-8xl drop-shadow-sm"
               initial={{ scale: 0.4, opacity: 0, y: -20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 1.1, opacity: 0, y: 20 }}
@@ -518,7 +518,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
         )}
       </div>
       <div className="grid md:grid-cols-2 gap-8 w-full max-w-5xl">
-        <Card className="w-full shadow-lg border border-primary/20">
+        <Card className="w-full shadow-sm border border-primary/20">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-primary">나</CardTitle>
             <CardDescription>
@@ -550,7 +550,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
             </div>
           </CardContent>
         </Card>
-        <Card className="w-full shadow-lg border border-primary/20">
+        <Card className="w-full shadow-sm border border-primary/20">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-primary">상대방</CardTitle>
             <CardDescription>

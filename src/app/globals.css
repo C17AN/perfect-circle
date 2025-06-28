@@ -163,4 +163,5 @@ body::after {
 
 * {
   user-select: none !important;
+  box-sizing: border-box;
 }
