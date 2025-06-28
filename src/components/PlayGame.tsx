@@ -1,19 +1,13 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import type { Peer, DataConnection } from 'peerjs';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { motion } from "motion/react"
-import { toast } from "sonner"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { useEffect, useRef, useState } from "react";
+import type { Peer, DataConnection } from "peerjs";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "motion/react";
+import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 interface PlayGameProps {
   gameId: string;
@@ -21,7 +15,7 @@ interface PlayGameProps {
 
 const PlayGame = ({ gameId }: PlayGameProps) => {
   const peerRef = useRef<Peer | null>(null);
-  const [myId, setMyId] = useState('');
+  const [myId, setMyId] = useState("");
   const connRef = useRef<DataConnection | null>(null);
 
   const localCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,26 +29,32 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   const [copied, setCopied] = useState(false);
 
   // Game state
-  const [gameState, setGameState] = useState<'waiting' | 'countdown' | 'playing' | 'finished'>('waiting');
+  const [gameState, setGameState] = useState<"waiting" | "countdown" | "playing" | "finished">(
+    "waiting"
+  );
   const [countdown, setCountdown] = useState(5);
   const [gameTimer, setGameTimer] = useState(30);
   const [localScore, setLocalScore] = useState(0);
   const [remoteScore, setRemoteScore] = useState(0);
-  const [winner, setWinner] = useState<'local' | 'remote' | 'tie' | null>(null);
+  const [winner, setWinner] = useState<"local" | "remote" | "tie" | null>(null);
   const [bestLocalScore, setBestLocalScore] = useState(0);
   const [bestRemoteScore, setBestRemoteScore] = useState(0);
-  const [scoreAnimation, setScoreAnimation] = useState<{ key: number, score: number, side: 'local' | 'remote' } | null>(null);
+  const [scoreAnimation, setScoreAnimation] = useState<{
+    key: number;
+    score: number;
+    side: "local" | "remote";
+  } | null>(null);
 
   // 계산된 진행률 (게임 타이머)
-  const progressPercent = gameState === 'playing' ? (gameTimer / 30) * 100 : 0;
+  const progressPercent = gameState === "playing" ? (gameTimer / 30) * 100 : 0;
 
   // Game flow effect
   useEffect(() => {
     if (isConnected) {
-      setGameState('countdown');
+      setGameState("countdown");
       setShowDisconnectedMessage(false);
     } else {
-      setGameState('waiting');
+      setGameState("waiting");
       setLocalScore(0);
       setRemoteScore(0);
       setWinner(null);
@@ -64,12 +64,12 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   }, [isConnected]);
 
   useEffect(() => {
-    if (gameState === 'countdown') {
+    if (gameState === "countdown") {
       const timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            setGameState('playing');
+            setGameState("playing");
             return 0;
           }
           return prev - 1;
@@ -80,12 +80,12 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   }, [gameState]);
 
   useEffect(() => {
-    if (gameState === 'playing') {
+    if (gameState === "playing") {
       const timer = setInterval(() => {
         setGameTimer((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            setGameState('finished');
+            setGameState("finished");
             return 0;
           }
           return prev - 1;
@@ -96,13 +96,13 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   }, [gameState]);
 
   useEffect(() => {
-    if (gameState === 'finished') {
+    if (gameState === "finished") {
       if (localScore > remoteScore) {
-        setWinner('local');
+        setWinner("local");
       } else if (remoteScore > localScore) {
-        setWinner('remote');
+        setWinner("remote");
       } else {
-        setWinner('tie');
+        setWinner("tie");
       }
     }
   }, [gameState, localScore, remoteScore]);
@@ -110,66 +110,61 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   // 1. Initialize PeerJS and act as host
   useEffect(() => {
     const initPeer = async () => {
-      const { default: Peer } = await import('peerjs');
+      const { default: Peer } = await import("peerjs");
       // To prevent server-side execution
-      if (typeof window === 'undefined') return;
+      if (typeof window === "undefined") return;
 
       const newPeer = new Peer();
       peerRef.current = newPeer;
 
-      newPeer.on('open', (id) => {
+      newPeer.on("open", (id) => {
         setMyId(id);
       });
 
       // We are the host, waiting for a guest to connect.
-      newPeer.on('connection', (conn) => {
+      newPeer.on("connection", (conn) => {
         connRef.current = conn;
-        conn.on('open', () => {
+        conn.on("open", () => {
           // Host waits for guest's SYN
         });
-        conn.on('data', (data: unknown) => {
-          if (
-            typeof data === 'object' &&
-            data &&
-            'type' in data &&
-            data.type === 'handshake-syn'
-          ) {
+        conn.on("data", (data: unknown) => {
+          if (typeof data === "object" && data && "type" in data && data.type === "handshake-syn") {
             // Handshake: Host receives SYN, sends ACK
-            conn.send({ type: 'handshake-ack' });
+            conn.send({ type: "handshake-ack" });
             setIsConnected(true);
             setShowDisconnectedMessage(false);
           } else if (
-            typeof data === 'object' &&
+            typeof data === "object" &&
             data &&
-            'type' in data &&
-            data.type === 'points' &&
-            'points' in data
+            "type" in data &&
+            data.type === "points" &&
+            "points" in data
           ) {
             setRemotePoints(data.points as { x: number; y: number }[]);
           } else if (
-            typeof data === 'object' &&
+            typeof data === "object" &&
             data &&
-            'type' in data &&
-            data.type === 'score' &&
-            'totalScore' in data &&
-            'lastScore' in data &&
-            'bestScore' in data
+            "type" in data &&
+            data.type === "score" &&
+            "totalScore" in data &&
+            "lastScore" in data &&
+            "bestScore" in data
           ) {
             setRemoteScore(data.totalScore as number);
             setBestRemoteScore(data.bestScore as number);
-            setScoreAnimation({ key: Date.now(), score: data.lastScore as number, side: 'remote' });
+            setScoreAnimation({ key: Date.now(), score: data.lastScore as number, side: "remote" });
           }
         });
 
-        conn.on('close', () => {
+        conn.on("close", () => {
           setIsConnected(false);
           setRemotePoints([]);
           setShowDisconnectedMessage(true);
         });
       });
 
-      newPeer.on('error', (err) => {
-        console.error('PeerJS error:', err);
+      newPeer.on("error", (err) => {
+        console.error("PeerJS error:", err);
       });
     };
 
@@ -187,44 +182,39 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
       const conn = peerRef.current.connect(gameId);
       connRef.current = conn;
 
-      conn.on('open', () => {
+      conn.on("open", () => {
         // Handshake: Guest sends SYN
-        conn.send({ type: 'handshake-syn' });
+        conn.send({ type: "handshake-syn" });
       });
 
-      conn.on('data', (data: unknown) => {
-        if (
-          typeof data === 'object' &&
-          data &&
-          'type' in data &&
-          data.type === 'handshake-ack'
-        ) {
+      conn.on("data", (data: unknown) => {
+        if (typeof data === "object" && data && "type" in data && data.type === "handshake-ack") {
           setIsConnected(true);
           setShowDisconnectedMessage(false);
         } else if (
-          typeof data === 'object' &&
+          typeof data === "object" &&
           data &&
-          'type' in data &&
-          data.type === 'points' &&
-          'points' in data
+          "type" in data &&
+          data.type === "points" &&
+          "points" in data
         ) {
           setRemotePoints(data.points as { x: number; y: number }[]);
         } else if (
-          typeof data === 'object' &&
+          typeof data === "object" &&
           data &&
-          'type' in data &&
-          data.type === 'score' &&
-          'totalScore' in data &&
-          'lastScore' in data &&
-          'bestScore' in data
+          "type" in data &&
+          data.type === "score" &&
+          "totalScore" in data &&
+          "lastScore" in data &&
+          "bestScore" in data
         ) {
           setRemoteScore(data.totalScore as number);
           setBestRemoteScore(data.bestScore as number);
-          setScoreAnimation({ key: Date.now(), score: data.lastScore as number, side: 'remote' });
+          setScoreAnimation({ key: Date.now(), score: data.lastScore as number, side: "remote" });
         }
       });
 
-      conn.on('close', () => {
+      conn.on("close", () => {
         setIsConnected(false);
         setRemotePoints([]);
         setShowDisconnectedMessage(true);
@@ -235,11 +225,11 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   // Draw on local canvas
   useEffect(() => {
     const canvas = localCanvasRef.current;
-    const context = canvas?.getContext('2d');
+    const context = canvas?.getContext("2d");
     if (context) {
       context.clearRect(0, 0, canvas!.width, canvas!.height);
       context.beginPath();
-      context.strokeStyle = 'black';
+      context.strokeStyle = "black";
       context.lineWidth = 2;
       if (localPoints.length > 0) {
         context.moveTo(localPoints[0].x, localPoints[0].y);
@@ -254,11 +244,11 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   // Draw on remote canvas
   useEffect(() => {
     const canvas = remoteCanvasRef.current;
-    const context = canvas?.getContext('2d');
+    const context = canvas?.getContext("2d");
     if (context) {
       context.clearRect(0, 0, canvas!.width, canvas!.height);
       context.beginPath();
-      context.strokeStyle = 'red';
+      context.strokeStyle = "red";
       context.lineWidth = 2;
       if (remotePoints.length > 0) {
         context.moveTo(remotePoints[0].x, remotePoints[0].y);
@@ -287,24 +277,21 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
     const distances = pointsToCalculate.map((p) =>
       Math.sqrt(Math.pow(p.x - centerX, 2) + Math.pow(p.y - centerY, 2))
     );
-    const avgRadius =
-      distances.reduce((sum, d) => sum + d, 0) / distances.length;
+    const avgRadius = distances.reduce((sum, d) => sum + d, 0) / distances.length;
 
     if (avgRadius === 0) {
       return 0;
     }
 
     const variance =
-      distances.reduce((sum, d) => sum + Math.pow(d - avgRadius, 2), 0) /
-      distances.length;
+      distances.reduce((sum, d) => sum + Math.pow(d - avgRadius, 2), 0) / distances.length;
     const stdDev = Math.sqrt(variance);
     const roundness = (1 - stdDev / avgRadius) * 100;
 
     const startPoint = pointsToCalculate[0];
     const endPoint = pointsToCalculate[pointsToCalculate.length - 1];
     const distance = Math.sqrt(
-      Math.pow(startPoint.x - endPoint.x, 2) +
-        Math.pow(startPoint.y - endPoint.y, 2)
+      Math.pow(startPoint.x - endPoint.x, 2) + Math.pow(startPoint.y - endPoint.y, 2)
     );
     const closeness_penalty = Math.max(0, 1 - distance / (avgRadius * 2));
     let finalScore = roundness * closeness_penalty;
@@ -314,7 +301,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameState !== 'playing') return;
+    if (gameState !== "playing") return;
     setIsDrawing(true);
     const canvas = localCanvasRef.current;
     if (!canvas) return;
@@ -325,7 +312,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || gameState !== 'playing') return;
+    if (!isDrawing || gameState !== "playing") return;
     const canvas = localCanvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -334,7 +321,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
     const newPoints = [...localPoints, { x, y }];
     setLocalPoints(newPoints);
     if (connRef.current) {
-      connRef.current.send({ type: 'points', points: newPoints });
+      connRef.current.send({ type: "points", points: newPoints });
     }
   };
 
@@ -349,12 +336,12 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
       setLocalScore(newTotalScore);
       setBestLocalScore(newBestScore);
       if (currentScore > 0) {
-        setScoreAnimation({ key: Date.now(), score: currentScore, side: 'local' });
+        setScoreAnimation({ key: Date.now(), score: currentScore, side: "local" });
       }
 
       if (connRef.current) {
         connRef.current.send({
-          type: 'score',
+          type: "score",
           totalScore: newTotalScore,
           lastScore: currentScore,
           bestScore: newBestScore,
@@ -363,18 +350,18 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
     }
   };
 
-  const invitationLink = myId ? `${window.location.origin}/play/${myId}` : '';
+  const invitationLink = myId ? `${window.location.origin}/play/${myId}` : "";
 
   const handleCopy = async () => {
     if (!invitationLink) return;
     try {
       await navigator.clipboard.writeText(invitationLink);
       setCopied(true);
-      toast.success('복사되었습니다!');
+      toast.success("복사되었습니다!");
       setTimeout(() => setCopied(false), 1500);
     } catch (err) {
-      console.error('Clipboard copy failed:', err);
-      toast.error('복사에 실패했습니다');
+      console.error("Clipboard copy failed:", err);
+      toast.error("복사에 실패했습니다");
     }
   };
 
@@ -383,17 +370,17 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
       {/* Decorative blurred shapes */}
       <motion.div
         className="pointer-events-none absolute -z-10 w-[500px] h-[500px] bg-primary/20 rounded-full blur-3xl"
-        initial={{ opacity: 0.4, scale: 0.9, x: '-50%', y: '-30%' }}
-        animate={{ opacity: 0.6, scale: 1.1, x: '-40%', y: '-35%' }}
-        transition={{ duration: 20, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
-        style={{ top: 0, left: '50%' }}
+        initial={{ opacity: 0.4, scale: 0.9, x: "-50%", y: "-30%" }}
+        animate={{ opacity: 0.6, scale: 1.1, x: "-40%", y: "-35%" }}
+        transition={{ duration: 20, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+        style={{ top: 0, left: "50%" }}
       />
       <motion.div
         className="pointer-events-none absolute -z-10 w-[500px] h-[500px] bg-indigo-400/15 dark:bg-indigo-600/15 rounded-full blur-3xl"
-        initial={{ opacity: 0.3, scale: 0.8, x: '-50%', y: '60%' }}
-        animate={{ opacity: 0.5, scale: 1.0, x: '-45%', y: '55%' }}
-        transition={{ duration: 25, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
-        style={{ bottom: 0, left: '50%' }}
+        initial={{ opacity: 0.3, scale: 0.8, x: "-50%", y: "60%" }}
+        animate={{ opacity: 0.5, scale: 1.0, x: "-45%", y: "55%" }}
+        transition={{ duration: 25, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+        style={{ bottom: 0, left: "50%" }}
       />
       <Button asChild className="absolute top-4 left-4 sm:top-8 sm:left-8">
         <Link href="/">← 뒤로 가기</Link>
@@ -402,7 +389,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
         2인용 원 그리기 대결
       </h1>
       <div className="mb-6 text-center min-h-[120px] flex flex-col justify-center items-center">
-        {gameState === 'waiting' && myId && !isConnected && (
+        {gameState === "waiting" && myId && !isConnected && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -412,93 +399,78 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
             <Card>
               <CardHeader>
                 <CardTitle>상대방 초대하기</CardTitle>
-                <CardDescription>
-                  다른 사람을 초대하려면 아래 링크를 공유하세요.
-                </CardDescription>
+                <CardDescription>다른 사람을 초대하려면 아래 링크를 공유하세요.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2 items-center">
                   <Input value={invitationLink} readOnly className="flex-1" />
                   <Button type="button" onClick={handleCopy}>
-                    {copied ? '복사됨!' : '복사'}
+                    {copied ? "복사됨!" : "복사"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         )}
-        {isConnected && gameState === 'countdown' && (
-          <p className="text-primary font-extrabold text-7xl lg:text-8xl animate-countdown drop-shadow-lg">
-            {countdown}
-          </p>
+        {isConnected && gameState === "countdown" && (
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={countdown}
+              className="text-primary font-extrabold text-7xl lg:text-8xl drop-shadow-lg"
+              initial={{ scale: 0.4, opacity: 0, y: -20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 1.1, opacity: 0, y: 20 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.8, 0.25, 1] }}
+            >
+              {countdown}
+            </motion.p>
+          </AnimatePresence>
         )}
-        {gameState === 'playing' && (
+        {gameState === "playing" && (
           <>
             <p className="text-destructive font-extrabold text-5xl mb-2">
               남은 시간: {gameTimer}초
             </p>
             <div className="w-full max-w-3xl mb-4">
               <div className="progress-container">
-                <div
-                  className="progress-bar"
-                  style={{ width: `${progressPercent}%` }}
-                />
+                <div className="progress-bar" style={{ width: `${progressPercent}%` }} />
               </div>
             </div>
           </>
         )}
-        {gameState === 'finished' && winner && (
+        {gameState === "finished" && winner && (
           <div className="text-center">
             <p className="text-4xl font-bold text-primary">게임 종료!</p>
-            {winner === 'local' && (
-              <p className="text-2xl mt-2 text-green-600">
-                당신이 이겼습니다! 🏆
-              </p>
+            {winner === "local" && (
+              <p className="text-2xl mt-2 text-green-600">당신이 이겼습니다! 🏆</p>
             )}
-            {winner === 'remote' && (
-              <p className="text-2xl mt-2 text-red-600">
-                상대방이 이겼습니다.
-              </p>
+            {winner === "remote" && (
+              <p className="text-2xl mt-2 text-red-600">상대방이 이겼습니다.</p>
             )}
-            {winner === 'tie' && (
-              <p className="text-2xl mt-2 text-primary">무승부입니다!</p>
-            )}
+            {winner === "tie" && <p className="text-2xl mt-2 text-primary">무승부입니다!</p>}
           </div>
         )}
 
-        {gameState === 'waiting' && !isConnected && showDisconnectedMessage && (
-          <p className="text-destructive font-bold mt-4">
-            🔌 연결이 끊어졌습니다.
-          </p>
+        {gameState === "waiting" && !isConnected && showDisconnectedMessage && (
+          <p className="text-destructive font-bold mt-4">🔌 연결이 끊어졌습니다.</p>
         )}
-        {gameState === 'waiting' &&
-          !isConnected &&
-          !showDisconnectedMessage &&
-          !myId && (
-            <p className="text-muted-foreground font-bold mt-4">
-              🔗 Peer ID를 생성하는 중...
-            </p>
-          )}
-        {gameState === 'waiting' &&
-          !isConnected &&
-          !showDisconnectedMessage &&
-          myId && (
-            <p className="text-muted-foreground font-bold mt-4">
-              ⏳ 상대방을 기다리는 중...
-            </p>
-          )}
+        {gameState === "waiting" && !isConnected && !showDisconnectedMessage && !myId && (
+          <p className="text-muted-foreground font-bold mt-4">🔗 Peer ID를 생성하는 중...</p>
+        )}
+        {gameState === "waiting" && !isConnected && !showDisconnectedMessage && myId && (
+          <p className="text-muted-foreground font-bold mt-4">⏳ 상대방을 기다리는 중...</p>
+        )}
       </div>
       <div className="grid md:grid-cols-2 gap-8 w-full max-w-5xl">
         <Card className="w-full shadow-lg border border-primary/20">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-primary">나</CardTitle>
             <CardDescription>
-              총점: {Math.round(localScore)} | 최고 점수:{' '}
-              {Math.round(bestLocalScore)}
+              총점: {Math.round(localScore)} | 최고 점수: {Math.round(bestLocalScore)}
             </CardDescription>
           </CardHeader>
           <CardContent className="relative p-4">
-            {scoreAnimation?.side === 'local' && (
+            {scoreAnimation?.side === "local" && (
               <div
                 key={scoreAnimation.key}
                 className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl font-bold text-green-500 animate-score-up z-10"
@@ -512,9 +484,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
                 width="400"
                 height="400"
                 className={`border border-gray-300 rounded-lg bg-card ${
-                  gameState === 'playing'
-                    ? 'cursor-crosshair'
-                    : 'cursor-not-allowed'
+                  gameState === "playing" ? "cursor-crosshair" : "cursor-not-allowed"
                 } w-full h-full`}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
@@ -528,12 +498,11 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-primary">상대방</CardTitle>
             <CardDescription>
-              총점: {Math.round(remoteScore)} | 최고 점수:{' '}
-              {Math.round(bestRemoteScore)}
+              총점: {Math.round(remoteScore)} | 최고 점수: {Math.round(bestRemoteScore)}
             </CardDescription>
           </CardHeader>
           <CardContent className="relative p-4">
-            {scoreAnimation?.side === 'remote' && (
+            {scoreAnimation?.side === "remote" && (
               <div
                 key={scoreAnimation.key}
                 className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl font-bold text-primary animate-score-up z-10"
@@ -556,4 +525,4 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   );
 };
 
-export default PlayGame; 
+export default PlayGame;
