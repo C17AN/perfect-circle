@@ -261,12 +261,71 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
     }
   }, [myId, gameId]);
 
-  // Draw on local canvas
+  const [overlayMode, setOverlayMode] = useState(false);
+
+  /* --------------------------------------------------
+   * 반응형 Canvas 사이즈 (DPR 대응)
+   * -------------------------------------------------- */
+  useEffect(() => {
+    const resizeCanvases = () => {
+      const update = (canvas: HTMLCanvasElement | null) => {
+        if (!canvas) return;
+        const parentWidth = canvas.parentElement?.clientWidth ?? 400;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = parentWidth * dpr;
+        canvas.height = parentWidth * dpr;
+        canvas.style.width = `${parentWidth}px`;
+        canvas.style.height = `${parentWidth}px`;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.setTransform(1, 0, 0, 1, 0, 0); // reset any existing scale
+          ctx.scale(dpr, dpr);
+        }
+      };
+
+      update(localCanvasRef.current);
+      update(remoteCanvasRef.current);
+    };
+
+    resizeCanvases();
+    window.addEventListener("resize", resizeCanvases);
+    return () => window.removeEventListener("resize", resizeCanvases);
+  }, []);
+
+  /* ----------------------------
+   * 모바일(<=767px) 오버레이 모드
+   * ---------------------------- */
+  useEffect(() => {
+    const updateOverlay = () => {
+      if (typeof window !== "undefined") {
+        setOverlayMode(window.matchMedia("(max-width: 767px)").matches);
+      }
+    };
+    updateOverlay();
+    window.addEventListener("resize", updateOverlay);
+    return () => window.removeEventListener("resize", updateOverlay);
+  }, []);
+
+  // Draw on local canvas (optionally include remote stroke)
   useEffect(() => {
     const canvas = localCanvasRef.current;
     const context = canvas?.getContext("2d");
     if (context) {
       context.clearRect(0, 0, canvas!.width, canvas!.height);
+
+      // Draw remote stroke first when overlaying (red)
+      if (overlayMode && remotePoints.length > 0) {
+        context.beginPath();
+        context.strokeStyle = "red";
+        context.lineWidth = 2;
+        context.moveTo(remotePoints[0].x, remotePoints[0].y);
+        for (let i = 1; i < remotePoints.length; i++) {
+          context.lineTo(remotePoints[i].x, remotePoints[i].y);
+        }
+        context.stroke();
+      }
+
+      // Draw local stroke (black) on top
       context.beginPath();
       context.strokeStyle = "black";
       context.lineWidth = 2;
@@ -278,10 +337,11 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
       }
       context.stroke();
     }
-  }, [localPoints]);
+  }, [localPoints, remotePoints, overlayMode]);
 
-  // Draw on remote canvas
+  // Draw on remote canvas (only when NOT overlaying)
   useEffect(() => {
+    if (overlayMode) return; // mobile overlay 모드에서는 별도 캔버스 X
     const canvas = remoteCanvasRef.current;
     const context = canvas?.getContext("2d");
     if (context) {
@@ -297,7 +357,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
       }
       context.stroke();
     }
-  }, [remotePoints]);
+  }, [remotePoints, overlayMode]);
 
   const calculateScore = (pointsToCalculate: { x: number; y: number }[]) => {
     if (pointsToCalculate.length < 2) {
@@ -339,24 +399,24 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
     return Math.round(finalScore * 100) / 100;
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const beginDraw = (clientX: number, clientY: number) => {
     if (gameState !== "playing") return;
     setIsDrawing(true);
     const canvas = localCanvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
     setLocalPoints([{ x, y }]);
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const moveDraw = (clientX: number, clientY: number) => {
     if (!isDrawing || gameState !== "playing") return;
     const canvas = localCanvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
     const newPoints = [...localPoints, { x, y }];
     setLocalPoints(newPoints);
     if (connRef.current) {
@@ -364,7 +424,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
     }
   };
 
-  const handleMouseUp = () => {
+  const endDraw = () => {
     if (!isDrawing) return;
     setIsDrawing(false);
     if (localPoints.length > 10) {
@@ -389,6 +449,35 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
           drawCount: newDrawCount,
         });
       }
+    }
+  };
+
+  // Mouse handlers
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) =>
+    beginDraw(e.clientX, e.clientY);
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) =>
+    moveDraw(e.clientX, e.clientY);
+  const handleMouseUp = () => endDraw();
+
+  // Pointer handlers (touch/stylus)
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType !== "mouse") {
+      e.preventDefault();
+      beginDraw(e.clientX, e.clientY);
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType !== "mouse") {
+      e.preventDefault();
+      moveDraw(e.clientX, e.clientY);
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType !== "mouse") {
+      e.preventDefault();
+      endDraw();
     }
   };
 
@@ -427,7 +516,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
       <Button asChild className="mb-12 mr-auto">
         <Link href="/">← 뒤로 가기</Link>
       </Button>
-      <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 text-center">
+      <h1 className="text-4xl sm:text-xl  font-extrabold tracking-tight lg:text-5xl mb-6 text-center">
         2인용 원 그리기 대결
       </h1>
       <div className="mb-6 w-full mx-auto text-center min-h-[120px] flex flex-col justify-center items-center">
@@ -484,7 +573,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
         )}
         {gameState === "playing" && (
           <>
-            <p className="text-destructive font-extrabold text-5xl mb-2">
+            <p className="text-destructive font-extrabold text-2xl lg:text-4xl mb-2">
               남은 시간: {gameTimer}초
             </p>
             <div className="w-full max-w-3xl mb-4">
@@ -517,66 +606,130 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
           <p className="text-muted-foreground font-bold mt-4">⏳ 상대방을 기다리는 중...</p>
         )}
       </div>
-      <div className="grid md:grid-cols-2 gap-8 w-full max-w-5xl">
-        <Card className="w-full shadow-sm border border-primary/20">
-          <CardHeader className="text-center pb-2">
-            <CardTitle className="text-primary">나</CardTitle>
-            <CardDescription>
-              총점: {Math.round(localScore)} | 최고 점수: {Math.round(bestLocalScore)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="relative p-4">
-            {scoreAnimation?.side === "local" && (
-              <div
-                key={scoreAnimation.key}
-                className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl font-bold text-green-500 animate-score-up z-10"
-              >
-                +{Math.round(scoreAnimation.score)}
+      {overlayMode ? (
+        /* ---------- 모바일: 하나의 카드 ---------- */
+        <div className="w-full max-w-[400px]">
+          <Card className="w-full shadow-sm border border-primary/20">
+            <CardHeader className="text-center pb-2 space-y-1">
+              <CardTitle className="text-primary">점수 현황</CardTitle>
+              <div className="flex items-center justify-center gap-4 text-sm font-medium">
+                <span>나: {Math.round(localScore)}</span>
+                <span>|</span>
+                <span className="text-red-500">상대: {Math.round(remoteScore)}</span>
               </div>
-            )}
-            <div className="w-full aspect-square max-w-[400px] mx-auto">
-              <canvas
-                ref={localCanvasRef}
-                width="400"
-                height="400"
-                className={`border border-gray-300 rounded-lg bg-card ${
-                  gameState === "playing" ? "cursor-crosshair" : "cursor-not-allowed"
-                } w-full h-full`}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-              />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="w-full shadow-sm border border-primary/20">
-          <CardHeader className="text-center pb-2">
-            <CardTitle className="text-primary">상대방</CardTitle>
-            <CardDescription>
-              총점: {Math.round(remoteScore)} | 최고 점수: {Math.round(bestRemoteScore)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="relative p-4">
-            {scoreAnimation?.side === "remote" && (
-              <div
-                key={scoreAnimation.key}
-                className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl font-bold text-primary animate-score-up z-10"
-              >
-                +{Math.round(scoreAnimation.score)}
+              <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                <span>내 최고: {Math.round(bestLocalScore)}</span>
+                <span>|</span>
+                <span>상대 최고: {Math.round(bestRemoteScore)}</span>
               </div>
-            )}
-            <div className="w-full aspect-square max-w-[400px] mx-auto">
-              <canvas
-                ref={remoteCanvasRef}
-                width="400"
-                height="400"
-                className="border border-gray-300 rounded-lg bg-card w-full h-full"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardHeader>
+            <CardContent className="relative p-4">
+              {/* 점수 애니메이션 */}
+              {scoreAnimation?.side === "local" && (
+                <div
+                  key={scoreAnimation.key}
+                  className="absolute top-0 left-1/4 -translate-x-1/2 text-3xl font-bold text-green-500 animate-score-up z-10"
+                >
+                  +{Math.round(scoreAnimation.score)}
+                </div>
+              )}
+              {scoreAnimation?.side === "remote" && (
+                <div
+                  key={scoreAnimation.key}
+                  className="absolute top-0 left-3/4 -translate-x-1/2 text-3xl font-bold text-primary animate-score-up z-10"
+                >
+                  +{Math.round(scoreAnimation.score)}
+                </div>
+              )}
+              <div className="w-full aspect-square max-w-[400px] mx-auto">
+                <canvas
+                  ref={localCanvasRef}
+                  width="400"
+                  height="400"
+                  className={`border border-gray-300 rounded-lg bg-card touch-none ${
+                    gameState === "playing" ? "cursor-crosshair" : "cursor-not-allowed"
+                  } w-full h-full`}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        /* ---------- 데스크톱: 두 카드 ---------- */
+        <div className="grid md:grid-cols-2 gap-8 w-full max-w-5xl">
+          {/* 기존 로컬 카드 */}
+          <Card className="w-full shadow-sm border border-primary/20">
+            <CardHeader className="text-center pb-2">
+              <CardTitle className="text-primary">나</CardTitle>
+              <CardDescription>
+                총점: {Math.round(localScore)} | 최고 점수: {Math.round(bestLocalScore)}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="relative p-4">
+              {scoreAnimation?.side === "local" && (
+                <div
+                  key={scoreAnimation.key}
+                  className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl font-bold text-green-500 animate-score-up z-10"
+                >
+                  +{Math.round(scoreAnimation.score)}
+                </div>
+              )}
+              <div className="w-full aspect-square max-w-[400px] mx-auto">
+                <canvas
+                  ref={localCanvasRef}
+                  width="400"
+                  height="400"
+                  className={`border border-gray-300 rounded-lg bg-card touch-none ${
+                    gameState === "playing" ? "cursor-crosshair" : "cursor-not-allowed"
+                  } w-full h-full`}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 기존 상대 카드 */}
+          <Card className="w-full shadow-sm border border-primary/20">
+            <CardHeader className="text-center pb-2">
+              <CardTitle className="text-primary">상대방</CardTitle>
+              <CardDescription>
+                총점: {Math.round(remoteScore)} | 최고 점수: {Math.round(bestRemoteScore)}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="relative p-4">
+              {scoreAnimation?.side === "remote" && (
+                <div
+                  key={scoreAnimation.key}
+                  className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl font-bold text-primary animate-score-up z-10"
+                >
+                  +{Math.round(scoreAnimation.score)}
+                </div>
+              )}
+              <div className="w-full aspect-square max-w-[400px] mx-auto">
+                <canvas
+                  ref={remoteCanvasRef}
+                  width="400"
+                  height="400"
+                  className="border border-gray-300 rounded-lg bg-card w-full h-full touch-none"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </main>
   );
 };

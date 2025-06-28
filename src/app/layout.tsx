@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import BackgroundCircles from "@/components/BackgroundCircles";
@@ -10,6 +10,13 @@ export const metadata: Metadata = {
   description: "완벽한 원을 그려보세요!",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -18,7 +25,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <BackgroundCircles />
+        <div className="hidden md:block">
+          <BackgroundCircles />
+        </div>
         {children}
         <Toaster richColors position="top-center" />
         <Suspense fallback={null}>
