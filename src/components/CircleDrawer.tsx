@@ -252,7 +252,7 @@ const CircleDrawer = () => {
           onClick={() => setShowGrid((prev) => !prev)}
           className={`px-4 py-2 font-bold rounded border transition-colors ${
             showGrid
-              ? "bg-primary text-white border-primary hover:bg-primary/80"
+              ? "bg-white text-primary border-primary hover:bg-primary/10"
               : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
           }`}
         >
