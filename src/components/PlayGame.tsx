@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { Peer, DataConnection } from "peerjs";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -45,8 +46,23 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
     side: "local" | "remote";
   } | null>(null);
 
+  // NEW: 승리 조건(총점 or 최고 점수)과 시도 횟수 상태를 추가합니다.
+  const [scoringMode, setScoringMode] = useState<"total" | "best">("total");
+  const [localDrawCount, setLocalDrawCount] = useState(0);
+  const [remoteDrawCount, setRemoteDrawCount] = useState(0);
+
   // 계산된 진행률 (게임 타이머)
   const progressPercent = gameState === "playing" ? (gameTimer / 30) * 100 : 0;
+
+  // URL 쿼리 파라미터에서 mode 읽기
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const modeParam = searchParams.get("mode");
+    if (modeParam === "total" || modeParam === "best") {
+      setScoringMode(modeParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 최초 한 번만 실행
 
   // Game flow effect
   useEffect(() => {
@@ -97,15 +113,34 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
 
   useEffect(() => {
     if (gameState === "finished") {
-      if (localScore > remoteScore) {
+      const localMetric = scoringMode === "total" ? localScore : bestLocalScore;
+      const remoteMetric = scoringMode === "total" ? remoteScore : bestRemoteScore;
+
+      if (localMetric > remoteMetric) {
         setWinner("local");
-      } else if (remoteScore > localScore) {
+      } else if (remoteMetric > localMetric) {
         setWinner("remote");
       } else {
-        setWinner("tie");
+        // 동점 시, 더 적은 시도 횟수로 승자를 결정합니다.
+        if (localDrawCount < remoteDrawCount) {
+          setWinner("local");
+        } else if (remoteDrawCount < localDrawCount) {
+          setWinner("remote");
+        } else {
+          setWinner("tie");
+        }
       }
     }
-  }, [gameState, localScore, remoteScore]);
+  }, [
+    gameState,
+    scoringMode,
+    localScore,
+    remoteScore,
+    bestLocalScore,
+    bestRemoteScore,
+    localDrawCount,
+    remoteDrawCount,
+  ]);
 
   // 1. Initialize PeerJS and act as host
   useEffect(() => {
@@ -141,24 +176,26 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
             "points" in data
           ) {
             setRemotePoints(data.points as { x: number; y: number }[]);
-          } else if (
-            typeof data === "object" &&
-            data &&
-            "type" in data &&
-            data.type === "score" &&
-            "totalScore" in data &&
-            "lastScore" in data &&
-            "bestScore" in data
-          ) {
-            setRemoteScore(data.totalScore as number);
-            setBestRemoteScore(data.bestScore as number);
-            setScoreAnimation({ key: Date.now(), score: data.lastScore as number, side: "remote" });
+          } else if (typeof data === "object" && data && "type" in data && data.type === "score") {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const d = data as any;
+            if ("totalScore" in d && "lastScore" in d && "bestScore" in d) {
+              setRemoteScore(d.totalScore as number);
+              setBestRemoteScore(d.bestScore as number);
+              if ("drawCount" in d) {
+                setRemoteDrawCount(d.drawCount as number);
+              }
+              setScoreAnimation({ key: Date.now(), score: d.lastScore as number, side: "remote" });
+            }
           }
         });
 
         conn.on("close", () => {
           setIsConnected(false);
           setRemotePoints([]);
+          setRemoteScore(0);
+          setBestRemoteScore(0);
+          setRemoteDrawCount(0);
           setShowDisconnectedMessage(true);
         });
       });
@@ -199,24 +236,26 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
           "points" in data
         ) {
           setRemotePoints(data.points as { x: number; y: number }[]);
-        } else if (
-          typeof data === "object" &&
-          data &&
-          "type" in data &&
-          data.type === "score" &&
-          "totalScore" in data &&
-          "lastScore" in data &&
-          "bestScore" in data
-        ) {
-          setRemoteScore(data.totalScore as number);
-          setBestRemoteScore(data.bestScore as number);
-          setScoreAnimation({ key: Date.now(), score: data.lastScore as number, side: "remote" });
+        } else if (typeof data === "object" && data && "type" in data && data.type === "score") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const d = data as any;
+          if ("totalScore" in d && "lastScore" in d && "bestScore" in d) {
+            setRemoteScore(d.totalScore as number);
+            setBestRemoteScore(d.bestScore as number);
+            if ("drawCount" in d) {
+              setRemoteDrawCount(d.drawCount as number);
+            }
+            setScoreAnimation({ key: Date.now(), score: d.lastScore as number, side: "remote" });
+          }
         }
       });
 
       conn.on("close", () => {
         setIsConnected(false);
         setRemotePoints([]);
+        setRemoteScore(0);
+        setBestRemoteScore(0);
+        setRemoteDrawCount(0);
         setShowDisconnectedMessage(true);
       });
     }
@@ -332,9 +371,11 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
       const currentScore = calculateScore(localPoints);
       const newTotalScore = localScore + currentScore;
       const newBestScore = Math.max(bestLocalScore, currentScore);
+      const newDrawCount = localDrawCount + 1;
 
       setLocalScore(newTotalScore);
       setBestLocalScore(newBestScore);
+      setLocalDrawCount(newDrawCount);
       if (currentScore > 0) {
         setScoreAnimation({ key: Date.now(), score: currentScore, side: "local" });
       }
@@ -345,12 +386,13 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
           totalScore: newTotalScore,
           lastScore: currentScore,
           bestScore: newBestScore,
+          drawCount: newDrawCount,
         });
       }
     }
   };
 
-  const invitationLink = myId ? `${window.location.origin}/play/${myId}` : "";
+  const invitationLink = myId ? `${window.location.origin}/play/${myId}?mode=${scoringMode}` : "";
 
   const handleCopy = async () => {
     if (!invitationLink) return;
@@ -408,6 +450,20 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
                     {copied ? "복사됨!" : "복사"}
                   </Button>
                 </div>
+                {gameState === "waiting" && !isConnected && (
+                  <div className="mt-4 flex items-center gap-4">
+                    <span className="font-medium">승리 조건:</span>
+                    <select
+                      value={scoringMode}
+                      onChange={(e) => setScoringMode(e.target.value as "total" | "best")}
+                      className="border rounded px-2 py-1 bg-background"
+                      disabled={isConnected}
+                    >
+                      <option value="total">총점</option>
+                      <option value="best">최고 점수</option>
+                    </select>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
