@@ -5,6 +5,7 @@ import type { Peer, DataConnection } from 'peerjs';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { motion } from "motion/react"
+import { toast } from "sonner"
 import {
   Card,
   CardContent,
@@ -369,9 +370,11 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
     try {
       await navigator.clipboard.writeText(invitationLink);
       setCopied(true);
+      toast.success('복사되었습니다!');
       setTimeout(() => setCopied(false), 1500);
     } catch (err) {
       console.error('Clipboard copy failed:', err);
+      toast.error('복사에 실패했습니다');
     }
   };
 

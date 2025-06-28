@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { Suspense } from "react";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Perfect Circle",
@@ -17,6 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
+        <Toaster richColors position="top-center" />
         <Suspense fallback={null}>
           <GoogleAnalytics />
         </Suspense>
