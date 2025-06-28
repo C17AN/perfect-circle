@@ -351,11 +351,11 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   const invitationLink = myId ? `${window.location.origin}/play/${myId}` : '';
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-10 bg-gray-100 relative">
-       <Link href="/" className="absolute top-8 left-8 px-4 py-2 font-bold text-white bg-gray-500 rounded hover:bg-gray-700">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-10 bg-gray-100 relative">
+       <Link href="/" className="absolute top-4 left-4 sm:top-8 sm:left-8 px-4 py-2 font-bold text-white bg-gray-500 rounded hover:bg-gray-700">
         ← 뒤로 가기
       </Link>
-      <h1 className="text-3xl font-bold mb-4">2인용 원 그리기 대결</h1>
+      <h1 className="text-3xl font-bold mb-4 text-center">2인용 원 그리기 대결</h1>
       <div className="mb-4 text-center h-24">
         {gameState === 'waiting' && myId && !isConnected && (
           <div className="p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
@@ -398,8 +398,8 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
           </p>
         )}
       </div>
-      <div className="flex gap-8">
-        <div className="flex flex-col items-center relative">
+      <div className="flex flex-col md:flex-row gap-8 w-full max-w-4xl">
+        <div className="flex flex-col items-center relative w-full">
           <div className="text-center h-16">
             <h2 className="text-xl mb-1">나</h2>
             <p className="text-lg">총점: {Math.round(localScore)}</p>
@@ -410,18 +410,20 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
               +{Math.round(scoreAnimation.score)}
             </div>
           )}
-          <canvas
-            ref={localCanvasRef}
-            width="400"
-            height="400"
-            className={`border border-gray-400 rounded-lg bg-white ${gameState === 'playing' ? 'cursor-crosshair' : 'cursor-not-allowed'}`}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          />
+          <div className="w-full aspect-square max-w-[400px]">
+            <canvas
+              ref={localCanvasRef}
+              width="400"
+              height="400"
+              className={`border border-gray-400 rounded-lg bg-white ${gameState === 'playing' ? 'cursor-crosshair' : 'cursor-not-allowed'} w-full h-full`}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            />
+          </div>
         </div>
-        <div className="flex flex-col items-center relative">
+        <div className="flex flex-col items-center relative w-full">
           <div className="text-center h-16">
             <h2 className="text-xl mb-1">상대방</h2>
             <p className="text-lg">총점: {Math.round(remoteScore)}</p>
@@ -432,12 +434,14 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
               +{Math.round(scoreAnimation.score)}
             </div>
           )}
-          <canvas
-            ref={remoteCanvasRef}
-            width="400"
-            height="400"
-            className="border border-gray-400 rounded-lg bg-white"
-          />
+           <div className="w-full aspect-square max-w-[400px]">
+            <canvas
+              ref={remoteCanvasRef}
+              width="400"
+              height="400"
+              className="border border-gray-400 rounded-lg bg-white w-full h-full"
+            />
+          </div>
         </div>
       </div>
     </main>

@@ -20,12 +20,12 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen items-start justify-center p-10 bg-gray-50">
-      <div className="flex w-full max-w-7xl gap-10">
-        <div className="w-2/3">
+    <main className="flex min-h-screen flex-col items-center justify-start p-4 sm:p-10 bg-gray-50">
+      <div className="flex flex-col md:flex-row w-full max-w-7xl gap-10">
+        <div className="w-full md:w-2/3">
           <CircleDrawer />
         </div>
-        <div className="flex flex-col gap-4 w-1/3">
+        <div className="flex flex-col gap-4 w-full md:w-1/3">
           <button
             onClick={startMultiplayerGame}
             className="w-full px-4 py-3 font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-800 transition-colors"

@@ -159,17 +159,19 @@ const CircleDrawer = () => {
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 p-6 bg-white border border-gray-200 rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold">가장 완벽한 원을 그려보세요!</h1>
-      <canvas
-        ref={canvasRef}
-        width="500"
-        height="500"
-        className="border border-gray-400 rounded-lg cursor-crosshair"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      />
+      <h1 className="text-2xl font-bold text-center">가장 완벽한 원을 그려보세요!</h1>
+      <div className="w-full max-w-[500px] aspect-square">
+        <canvas
+          ref={canvasRef}
+          width="500"
+          height="500"
+          className="border border-gray-400 rounded-lg cursor-crosshair w-full h-full"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        />
+      </div>
       <div className="flex items-center justify-center gap-2">
         <button
           onClick={() => {
