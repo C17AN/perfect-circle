@@ -201,7 +201,7 @@ const CircleDrawer = () => {
           ref={canvasRef}
           width="500"
           height="500"
-          className="border border-gray-400 rounded-lg cursor-crosshair w-full h-full"
+          className="border border-gray-300 rounded-lg cursor-crosshair w-full h-full"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}

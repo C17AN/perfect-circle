@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Peer, DataConnection } from 'peerjs';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { motion } from "motion/react"
 import {
   Card,
   CardContent,
@@ -30,6 +31,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [showDisconnectedMessage, setShowDisconnectedMessage] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Game state
   const [gameState, setGameState] = useState<'waiting' | 'countdown' | 'playing' | 'finished'>('waiting');
@@ -362,8 +364,34 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
 
   const invitationLink = myId ? `${window.location.origin}/play/${myId}` : '';
 
+  const handleCopy = async () => {
+    if (!invitationLink) return;
+    try {
+      await navigator.clipboard.writeText(invitationLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error('Clipboard copy failed:', err);
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-10 bg-gradient-to-br from-background via-background/80 to-muted relative">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-10 bg-gradient-to-br from-background via-background/80 to-muted relative overflow-hidden">
+      {/* Decorative blurred shapes */}
+      <motion.div
+        className="pointer-events-none absolute -z-10 w-[500px] h-[500px] bg-primary/20 rounded-full blur-3xl"
+        initial={{ opacity: 0.4, scale: 0.9, x: '-50%', y: '-30%' }}
+        animate={{ opacity: 0.6, scale: 1.1, x: '-40%', y: '-35%' }}
+        transition={{ duration: 20, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+        style={{ top: 0, left: '50%' }}
+      />
+      <motion.div
+        className="pointer-events-none absolute -z-10 w-[500px] h-[500px] bg-indigo-400/15 dark:bg-indigo-600/15 rounded-full blur-3xl"
+        initial={{ opacity: 0.3, scale: 0.8, x: '-50%', y: '60%' }}
+        animate={{ opacity: 0.5, scale: 1.0, x: '-45%', y: '55%' }}
+        transition={{ duration: 25, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+        style={{ bottom: 0, left: '50%' }}
+      />
       <Button asChild className="absolute top-4 left-4 sm:top-8 sm:left-8">
         <Link href="/">← 뒤로 가기</Link>
       </Button>
@@ -372,17 +400,29 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
       </h1>
       <div className="mb-6 text-center min-h-[120px] flex flex-col justify-center items-center">
         {gameState === 'waiting' && myId && !isConnected && (
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>상대방 초대하기</CardTitle>
-              <CardDescription>
-                다른 사람을 초대하려면 아래 링크를 공유하세요.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Input value={invitationLink} readOnly />
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] }}
+            className="w-full max-w-md"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>상대방 초대하기</CardTitle>
+                <CardDescription>
+                  다른 사람을 초대하려면 아래 링크를 공유하세요.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 items-center">
+                  <Input value={invitationLink} readOnly className="flex-1" />
+                  <Button type="button" onClick={handleCopy}>
+                    {copied ? '복사됨!' : '복사'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
         {isConnected && gameState === 'countdown' && (
           <p className="text-primary font-extrabold text-7xl lg:text-8xl animate-countdown drop-shadow-lg">
@@ -468,7 +508,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
                 ref={localCanvasRef}
                 width="400"
                 height="400"
-                className={`border border-border rounded-lg bg-card ${
+                className={`border border-gray-300 rounded-lg bg-card ${
                   gameState === 'playing'
                     ? 'cursor-crosshair'
                     : 'cursor-not-allowed'
@@ -503,7 +543,7 @@ const PlayGame = ({ gameId }: PlayGameProps) => {
                 ref={remoteCanvasRef}
                 width="400"
                 height="400"
-                className="border border-border rounded-lg bg-card w-full h-full"
+                className="border border-gray-300 rounded-lg bg-card w-full h-full"
               />
             </div>
           </CardContent>
